@@ -99,6 +99,11 @@ const session = Astro.locals.session;
       <!-- User info + Logout -->
       <div class="p-4 border-t border-blue-800">
         <p class="text-xs text-blue-400 mb-2 truncate">{session?.email}</p>
+        <a href="/change-password"
+           class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm
+                  text-blue-300 hover:bg-blue-800 hover:text-white transition-colors">
+          <span>🔑</span> เปลี่ยนรหัสผ่าน
+        </a>
         <form action="/api/auth/logout" method="POST">
           <button type="submit"
                   class="w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-sm

@@ -45,6 +45,9 @@ const session = Astro.locals.session;
                   {u.id === session?.userId && (
                     <span class="text-xs bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full">คุณ</span>
                   )}
+                  {u.must_change_password && (
+                    <span class="text-xs bg-amber-100 text-amber-700 font-semibold px-2 py-0.5 rounded-full">ยังไม่เปลี่ยนรหัส</span>
+                  )}
                 </div>
               </td>
               <td class="px-5 py-3 text-center">

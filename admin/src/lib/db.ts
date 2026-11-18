@@ -58,6 +58,7 @@ export function parseTags(input: unknown): string[] {
 export interface AdminUser {
   id: number; email: string; display_name: string | null;
   is_active: boolean; last_login_at: string | null; role: string;
+  must_change_password: boolean;
 }
 
 // --------- Standards ---------
@@ -266,20 +267,36 @@ export async function getAdminByEmail(email: string) {
   return rows[0] ?? null;
 }
 
+export async function getAdminAuthById(id: number) {
+  const rows = await sql`
+    SELECT * FROM admin_users WHERE id = ${id} AND is_active = TRUE LIMIT 1
+  `;
+  return rows[0] ?? null;
+}
+
+/** เปลี่ยนรหัสผ่านของตัวเอง แล้วปลดสถานะ "ต้องเปลี่ยนรหัสผ่าน" */
+export async function setOwnPassword(id: number, password_hash: string) {
+  await sql`
+    UPDATE admin_users
+    SET password_hash = ${password_hash}, must_change_password = FALSE
+    WHERE id = ${id}
+  `;
+}
+
 export async function updateLastLogin(id: number) {
   await sql`UPDATE admin_users SET last_login_at = NOW() WHERE id = ${id}`;
 }
 
 export async function getAllAdminUsers(): Promise<AdminUser[]> {
   return await sql`
-    SELECT id, email, display_name, is_active, last_login_at, role
+    SELECT id, email, display_name, is_active, last_login_at, role, must_change_password
     FROM admin_users ORDER BY id
   ` as AdminUser[];
 }
 
 export async function getAdminUserById(id: number): Promise<AdminUser | null> {
   const rows = await sql`
-    SELECT id, email, display_name, is_active, last_login_at, role
+    SELECT id, email, display_name, is_active, last_login_at, role, must_change_password
     FROM admin_users WHERE id = ${id}
   ` as AdminUser[];
   return rows[0] ?? null;
@@ -287,26 +304,30 @@ export async function getAdminUserById(id: number): Promise<AdminUser | null> {
 
 export async function createAdminUser(data: {
   email: string; password_hash: string; display_name?: string; role?: string;
+  must_change_password?: boolean;
 }): Promise<AdminUser> {
   const rows = await sql`
-    INSERT INTO admin_users (email, password_hash, display_name, role)
-    VALUES (${data.email}, ${data.password_hash}, ${data.display_name ?? null}, ${data.role ?? 'teacher'})
-    RETURNING id, email, display_name, is_active, last_login_at, role
+    INSERT INTO admin_users (email, password_hash, display_name, role, must_change_password)
+    VALUES (${data.email}, ${data.password_hash}, ${data.display_name ?? null}, ${data.role ?? 'teacher'},
+            ${data.must_change_password ?? true})
+    RETURNING id, email, display_name, is_active, last_login_at, role, must_change_password
   ` as AdminUser[];
   return rows[0];
 }
 
 export async function updateAdminUser(id: number, data: {
   display_name?: string; is_active?: boolean; password_hash?: string; role?: string;
+  must_change_password?: boolean;
 }): Promise<AdminUser | null> {
   const rows = await sql`
     UPDATE admin_users SET
       display_name  = COALESCE(${data.display_name  ?? null}, display_name),
       is_active     = COALESCE(${data.is_active     ?? null}, is_active),
       password_hash = COALESCE(${data.password_hash ?? null}, password_hash),
-      role          = COALESCE(${data.role          ?? null}, role)
+      role          = COALESCE(${data.role          ?? null}, role),
+      must_change_password = COALESCE(${data.must_change_password ?? null}, must_change_password)
     WHERE id = ${id}
-    RETURNING id, email, display_name, is_active, last_login_at, role
+    RETURNING id, email, display_name, is_active, last_login_at, role, must_change_password
   ` as AdminUser[];
   return rows[0] ?? null;
 }

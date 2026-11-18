@@ -14,6 +14,8 @@ export interface SessionPayload {
   userId: number;
   email: string;
   role: string;
+  /** true = ต้องเปลี่ยนรหัสผ่านก่อนใช้งานระบบ (เข้าครั้งแรก / admin รีเซ็ตรหัส) */
+  mustChangePassword?: boolean;
 }
 
 /** สร้าง JWT token */

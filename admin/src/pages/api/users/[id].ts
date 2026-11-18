@@ -15,7 +15,10 @@ export const PUT: APIRoute = async ({ params, request }) => {
   const id = Number(params.id);
   const data = await request.json();
 
-  const updateData: { display_name?: string; is_active?: boolean; password_hash?: string; role?: string } = {};
+  const updateData: {
+    display_name?: string; is_active?: boolean; password_hash?: string; role?: string;
+    must_change_password?: boolean;
+  } = {};
 
   if (data.display_name !== undefined) updateData.display_name = data.display_name;
   if (data.is_active    !== undefined) updateData.is_active    = Boolean(data.is_active);
@@ -23,11 +26,17 @@ export const PUT: APIRoute = async ({ params, request }) => {
     updateData.role = data.role === 'admin' ? 'admin' : 'teacher';
   }
 
-  if (data.password && data.password.length > 0) {
+  if (data.reset_password === true) {
+    // รีเซ็ตเป็นรหัสเริ่มต้น 123456 → ผู้ใช้ต้องเปลี่ยนเมื่อเข้าครั้งถัดไป
+    updateData.password_hash = await bcrypt.hash('123456', 10);
+    updateData.must_change_password = true;
+  } else if (data.password && data.password.length > 0) {
     if (data.password.length < 6) {
       return new Response(JSON.stringify({ error: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' }), { status: 400 });
     }
     updateData.password_hash = await bcrypt.hash(data.password, 10);
+    // admin ตั้งรหัสให้คนอื่น → คนนั้นต้องเปลี่ยนเองเมื่อเข้าครั้งถัดไป
+    if (id !== session.userId) updateData.must_change_password = true;
   }
 
   const user = await updateAdminUser(id, updateData);

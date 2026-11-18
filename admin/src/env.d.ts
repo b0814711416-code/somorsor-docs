@@ -16,6 +16,8 @@ declare namespace App {
     session?: {
       userId: number;
       email:  string;
+      role:   string;
+      mustChangePassword?: boolean;
     };
   }
 }

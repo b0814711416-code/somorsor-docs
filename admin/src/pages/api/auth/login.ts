@@ -1,6 +1,6 @@
 /**
  * POST /api/auth/login
- * รับ { email, password } → ตรวจสอบกับฐานข้อมูล → ออก JWT cookie
+ * รับ { email, password } — email คือชื่อผู้ใช้ (เช่น chaiso01) หรืออีเมล → ตรวจสอบกับฐานข้อมูล → ออก JWT cookie
  */
 import type { APIRoute } from 'astro';
 import bcrypt from 'bcryptjs';
@@ -21,7 +21,7 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   if (!email || !password) {
-    return new Response(JSON.stringify({ error: 'กรุณากรอก email และรหัสผ่าน' }), {
+    return new Response(JSON.stringify({ error: 'กรุณากรอกชื่อผู้ใช้และรหัสผ่าน' }), {
       status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -31,7 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
   if (!user) {
     // ป้องกัน timing attack — compare กับ hash ตัวอย่างก่อนตอบ
     await bcrypt.compare(password, '$2b$10$invalidhashxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx');
-    return new Response(JSON.stringify({ error: 'Email หรือรหัสผ่านไม่ถูกต้อง' }), {
+    return new Response(JSON.stringify({ error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' }), {
       status: 401, headers: { 'Content-Type': 'application/json' },
     });
   }
@@ -39,16 +39,19 @@ export const POST: APIRoute = async ({ request }) => {
   // ตรวจสอบรหัสผ่าน
   const match = await bcrypt.compare(password, user.password_hash);
   if (!match) {
-    return new Response(JSON.stringify({ error: 'Email หรือรหัสผ่านไม่ถูกต้อง' }), {
+    return new Response(JSON.stringify({ error: 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง' }), {
       status: 401, headers: { 'Content-Type': 'application/json' },
     });
   }
 
   // ออก JWT token
-  const token = await signToken({ userId: user.id, email: user.email, role: user.role ?? 'teacher' });
+  const mustChangePassword = Boolean(user.must_change_password);
+  const token = await signToken({
+    userId: user.id, email: user.email, role: user.role ?? 'teacher', mustChangePassword,
+  });
   await updateLastLogin(user.id);
 
-  return new Response(JSON.stringify({ ok: true, displayName: user.display_name }), {
+  return new Response(JSON.stringify({ ok: true, displayName: user.display_name, mustChangePassword }), {
     status: 200,
     headers: {
       'Content-Type': 'application/json',

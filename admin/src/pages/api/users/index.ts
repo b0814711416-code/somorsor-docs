@@ -22,10 +22,12 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   const data = await request.json();
-  const { email, password, display_name, role } = data;
+  const { email, display_name, role } = data;
+  // ไม่กรอกรหัสผ่าน → ใช้รหัสเริ่มต้น 123456 (ผู้ใช้ต้องเปลี่ยนเมื่อเข้าครั้งแรกเสมอ)
+  const password: string = data.password || '123456';
 
-  if (!email || !password) {
-    return new Response(JSON.stringify({ error: 'กรุณากรอกอีเมลและรหัสผ่าน' }), { status: 400 });
+  if (!email) {
+    return new Response(JSON.stringify({ error: 'กรุณากรอกชื่อผู้ใช้' }), { status: 400 });
   }
   if (password.length < 6) {
     return new Response(JSON.stringify({ error: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' }), { status: 400 });
@@ -38,11 +40,12 @@ export const POST: APIRoute = async ({ request }) => {
       password_hash,
       display_name: display_name || undefined,
       role: role === 'admin' ? 'admin' : 'teacher',
+      must_change_password: true,
     });
     return new Response(JSON.stringify(user), { status: 201 });
   } catch (err: any) {
     if (err?.message?.includes('unique') || err?.message?.includes('duplicate')) {
-      return new Response(JSON.stringify({ error: 'อีเมลนี้มีอยู่ในระบบแล้ว' }), { status: 409 });
+      return new Response(JSON.stringify({ error: 'ชื่อผู้ใช้นี้มีอยู่ในระบบแล้ว' }), { status: 409 });
     }
     return new Response(JSON.stringify({ error: 'เกิดข้อผิดพลาด' }), { status: 500 });
   }
