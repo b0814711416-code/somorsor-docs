@@ -13,6 +13,8 @@ export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
     email    = (body.email    ?? '').trim().toLowerCase();
+    // พิมพ์แบบเดิม chaiso01@school.ac.th → ตัดเหลือ chaiso01 อัตโนมัติ
+    email    = email.replace(/@school\.ac\.th$/, '');
     password = (body.password ?? '');
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid request body' }), {
